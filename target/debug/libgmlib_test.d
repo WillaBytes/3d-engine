@@ -1,1 +1,1 @@
-/home/w/programming/gmlib_test/target/debug/libgmlib_test.rlib: /home/w/programming/gmlib_test/src/lib.rs
+/home/w/programming/git/3d-engine/target/debug/libgmlib_test.rlib: /home/w/programming/git/3d-engine/src/lib.rs
