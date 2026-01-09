@@ -37,6 +37,7 @@ pub struct App {
 pub struct Vertex {
     position: [f32; 3],
     color: [f32; 3],
+    camera: Camera,
 }
 
 #[repr(C)]
@@ -61,32 +62,68 @@ impl Camera {
 
 impl Vertex {
     fn descriptor() -> wgpu::VertexBufferLayout<'static> {
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
+        use std::mem;
+        use wgpu::{
+            VertexAttribute,
+            BufferAddress,
+            VertexFormat,
+            VertexStepMode,
+            VertexBufferLayout,
+        };
+
+        VertexBufferLayout {
+            array_stride: size_of::<Vertex>() as BufferAddress,
+            step_mode: VertexStepMode::Vertex,
             attributes: &[
-                wgpu::VertexAttribute {
+                VertexAttribute {
                     offset: 0,
                     shader_location: 0,
-                    format: wgpu::VertexFormat::Float32x3,
+                    format: VertexFormat::Float32x3,
                 },
-                wgpu::VertexAttribute {
-                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                VertexAttribute {
+                    offset: size_of::<[f32; 3]>() as BufferAddress,
                     shader_location: 1,
-                    format: wgpu::VertexFormat::Float32x3,
+                    format: VertexFormat::Float32x3,
+                },
+                VertexAttribute {
+                    offset: size_of::<[f32; 6]>() as BufferAddress,
+                    shader_location: 2,
+                    format: VertexFormat::Float32x3,
+                },
+                VertexAttribute {
+                    offset: size_of::<[f32; 9]>() as BufferAddress,
+                    shader_location: 3,
+                    format: VertexFormat::Float32,
+                },
+                VertexAttribute {
+                    offset: size_of::<[f32; 10]>() as BufferAddress,
+                    shader_location: 4,
+                    format: VertexFormat::Float32,
+                },
+                VertexAttribute {
+                    offset: size_of::<[f32; 11]>() as BufferAddress,
+                    shader_location: 5,
+                    format: VertexFormat::Float32,
                 },
             ]
         }
     }
 }
 
+static CAMERA: Camera = Camera {
+    position: [0.0, 0.0, 0.0],
+    angle_horizontal: 0.0,
+    angle_vertical: 1.0,
+    scale_factor: 0.10,
+};
+
 static VERTICES: &[Vertex] = &[
-    Vertex { position: [0.0, 0.0, 0.0], color: [1.0, 1.0, 0.0] },
-    Vertex { position: [1.0, 0.0, 0.0], color: [1.0, 0.4, 1.0] },
-    Vertex { position: [0.5, 1.0, 0.5], color: [0.4, 0.0, 0.0] },
-    Vertex { position: [0.0, -1.0, 0.0], color: [1.0, 1.0, 0.0] },
-    Vertex { position: [1.0, 0.0, 0.0], color: [1.0, 0.4, 0.0] },
-    Vertex { position: [0.5, 1.0, 0.5], color: [0.4, 0.0, 1.0] },
+    Vertex { position: [0.0, 0.0, 0.0], color: [1.0, 1.0, 0.0], camera: CAMERA },
+    Vertex { position: [1.0, 0.0, 0.0], color: [1.0, 0.4, 1.0], camera: CAMERA },
+    Vertex { position: [0.5, 1.0, 0.0], color: [0.4, 0.0, 0.0], camera: CAMERA },
+    Vertex { position: [0.0, -1.0, 0.0], color: [1.0, 1.0, 0.0], camera: CAMERA },
+    Vertex { position: [1.0, 0.0, 0.0], color: [1.0, 0.4, 0.0], camera: CAMERA },
+    Vertex { position: [0.5, 1.0, 0.0], color: [0.4, 0.0, 1.0], camera: CAMERA },
 ];
 
 const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {

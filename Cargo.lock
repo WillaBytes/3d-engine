@@ -1957,6 +1957,7 @@ name = "wgpu-3d-engine"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "bytemuck",
  "env_logger",
  "log",
  "pollster",
