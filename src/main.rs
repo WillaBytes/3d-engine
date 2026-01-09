@@ -3,13 +3,13 @@ mod wgpu_3d_engine;
 
 use wgpu_3d_engine::run;
 
-/*
+
 fn main() {
     run().unwrap();
 }
-*/
 
 
+/*
 mod gmlib;
 mod camera;
 use crate::gmlib::matrix::*;
@@ -158,4 +158,5 @@ fn main() {
     ]).inverse());
     */
 }
+*/
 */
