@@ -29,7 +29,37 @@ pub struct State {
     num_vertices: u32,
     camera: camera::camera::Camera,
     camera_matrix: [[f32; 3]; 3],
+    delta_time: std::time::Instant,
+    frame_times: FrameTimes,
 }
+
+struct FrameTimes {
+    delta_time: std::time::Instant,
+    delta_time_sum: std::time::Duration,
+    update_time: std::time::Duration,
+    sample_size: u32,
+}
+
+impl FrameTimes {
+    fn reset(&mut self) {
+        self.delta_time = std::time::Instant::now();
+        self.delta_time_sum = std::time::Duration::from_secs(0);
+        self.sample_size = 1;
+    }
+
+    fn new_sample(mut self) -> Self {
+        self.delta_time = std::time::Instant::now();
+        self.sample_size = self.sample_size + 1;
+        
+        self
+    }
+
+}
+
+
+
+pub struct FpsCounter {}
+
 
 pub struct App {
     #[cfg(target_arch = "wasm32")]
@@ -201,7 +231,7 @@ impl State {
 
         let camera_matrix = camera.matrix();
 
-        let scale_factor = 2.5;
+        let scale_factor = 1.0;
 
         let vertices = [
             Vertex { position: [0.0, 0.0, 3.0], color: [1.0, 1.0, 1.0], camera_matrix, scale_factor },
@@ -264,6 +294,15 @@ impl State {
 
         let num_vertices = vertices.len() as u32;
 
+        let delta_time = std::time::Instant::now();
+
+        let frame_times = FrameTimes {
+            delta_time: std::time::Instant::now(),
+            delta_time_sum: std::time::Duration::from_secs(0),
+            update_time: std::time::Duration::from_secs(1),
+            sample_size: 1,
+        };
+
         Ok(Self {
             surface,
             device,
@@ -277,6 +316,8 @@ impl State {
             num_vertices,
             camera,
             camera_matrix,
+            delta_time,
+            frame_times,
         })
     }
 
@@ -342,6 +383,18 @@ impl State {
     }
 
     fn update(&mut self) {
+        self.frame_times.sample_size = self.frame_times.sample_size + 1;
+        if self.frame_times.delta_time.elapsed() >= std::time::Duration::from_millis(500) {
+            println!("{:?}", self.frame_times.sample_size * 2);
+            self.frame_times.sample_size = 0;
+            self.frame_times.delta_time = std::time::Instant::now();
+        }
+
+        self.frame_times.sample_size = self.frame_times.sample_size + 1;
+        
+        //println!("{:?}", self.delta_time.elapsed());
+        //self.delta_time = std::time::Instant::now();
+
         let camera_matrix = self.camera.matrix();
         for i in 0..6 {
             self.vertices[i].camera_matrix = camera_matrix;
@@ -354,7 +407,6 @@ impl State {
                 usage: wgpu::BufferUsages::VERTEX,
             }
         );
-
     }
 }
 
