@@ -23,7 +23,6 @@ pub struct State {
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
     vertices: [Vertex; 12],
-    num_vertices: u32,
     camera: camera::camera::Camera,
     camera_matrix: [[f32; 3]; 3],
     delta_time: std::time::Instant,
@@ -59,8 +58,6 @@ pub struct FpsCounter {}
 
 
 pub struct App {
-    #[cfg(target_arch = "wasm32")]
-    proxy: Option<winit::event_loop::EventLoopProxy<State>>,
     state: Option<State>,
 }
 
@@ -277,8 +274,6 @@ impl State {
                 cache: None,
             });
 
-        let num_vertices = vertices.len() as u32;
-
         let delta_time = std::time::Instant::now();
 
         let frame_times = FrameTimes {
@@ -302,7 +297,6 @@ impl State {
             render_pipeline,
             vertex_buffer,
             vertices,
-            num_vertices,
             camera,
             camera_matrix,
             delta_time,
@@ -402,17 +396,14 @@ impl State {
     fn update(&mut self) {
         self.frame_times.sample_size = self.frame_times.sample_size + 1;
         if self.frame_times.delta_time.elapsed() >= std::time::Duration::from_millis(500) {
-            println!("{:?}", self.frame_times.sample_size * 2);
-            println!("{:?}\n{:?}\n{:?}\n", self.camera.position, self.camera.direction_h(), self.vertices);
+            println!("{:?}", self.frame_times.sample_size as f32 * 2.0);
+            println!("{:?}\n{:?}\n", self.camera.position, self.camera.direction_h());
             self.frame_times.sample_size = 0;
             self.frame_times.delta_time = std::time::Instant::now();
         }
 
         self.frame_times.sample_size = self.frame_times.sample_size + 1;
         
-        //println!("{:?}", self.delta_time.elapsed());
-        //self.delta_time = std::time::Instant::now();
-
         for i in 0..self.vertices.len() {
             self.vertices[i].camera_matrix = self.camera.matrix();
             self.vertices[i].camera_position = self.camera.position;
@@ -436,51 +427,13 @@ impl App {
 
 impl ApplicationHandler<State> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        #[allow(unused_mut)]
         let mut window_attributes = Window::default_attributes();
-
-        #[cfg(target_arch = "wasm32")]
-        {
-            use wasm_bindgen::JsCast;
-            use winit::platform::web::WindowAttributesExtWebSys;
-
-            const CANVAS_ID: &str = "canvas";
-
-            let window = wgpu::web_sys::window().unwrap_throw();
-            let document = window.document().unwrap_throw();
-            let canvas = document.get_element_by_id(CANVAS_ID).unwrap_throw();
-            let html_canvas_elemt = canvas.unchecked_into();
-            window_attributes = window_attributes.with_canvas(Some(html_canvas_elements));
-        }
-
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            self.state = Some(pollster::block_on(State::new(window)).unwrap());
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        {
-            if let Some(proxy) = self.proxy.take() {
-                wasm_bindgen_futures::spawn_local(async move {
-                    assert!(proxy.send_event(State::new(window).await.expect("Unable to create canvas!!!!!")).is_ok()) 
-                });
-            }
-        }
+        self.state = Some(pollster::block_on(State::new(window)).unwrap());
     }
 
     #[allow(unused_mut)]
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, mut event: State) {
-        #[cfg(target_arch = "wasm32")]
-        {
-            event.window.request_redraw();
-            even.resize(
-                event.window.inner_size().width,
-                event.window.inner_size().height,
-            );
-        }
-        
         self.state = Some(event);
     }
 
@@ -542,17 +495,10 @@ impl ApplicationHandler<State> for App {
 }
 
 pub fn run() -> anyhow::Result<()> {
-    #[cfg(not(target_arch = "wasm32"))]
     env_logger::init();
     
-    #[cfg(target_arch = "wasm32")]
-    console_log::init_with_level(log::Level::Info).unwarp_throw();
-
     let event_loop = EventLoop::with_user_event().build()?;
-    let mut app = App::new(
-        #[cfg(target_arch = "wasm32")]
-        &event_loop,
-    );
+    let mut app = App::new();
     event_loop.run_app(&mut app)?;
 
     Ok(())
