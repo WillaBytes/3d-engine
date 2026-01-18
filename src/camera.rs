@@ -53,6 +53,7 @@ pub mod camera {
         }
 
         pub fn adjust_angle_v(&mut self, increment: f32, limit: f32) {
+            // For the sake of not breaking your neck ;)
             if (self.angle_v < limit && self.angle_v > -limit)
                 || (increment < 0.0 && self.angle_v < -limit)
                 || (increment > 0.0 && self.angle_v > limit)
@@ -65,6 +66,10 @@ pub mod camera {
 
         pub fn direction(&self) -> [f32; 3] {
             [-self.angle_h.sin(), self.angle_v.sin(), self.angle_h.cos()]
+        }
+
+        pub fn direction_h(&self) -> [f32; 3] {
+            [-self.angle_h.sin(), 0.0, self.angle_h.cos()]
         }
 
         pub fn move_to(&mut self, destination: [f32; 3]) {
@@ -94,14 +99,14 @@ pub mod camera {
         }
 
         pub fn move_left(&mut self, increment: f32) {
-            let camera_direction = self.direction();
+            let camera_direction = self.direction_h();
 
             self.position[0] -= camera_direction[2] * increment;
             self.position[2] += camera_direction[0] * increment;
         }
 
         pub fn move_right(&mut self, increment: f32) {
-            let camera_direction = self.direction();
+            let camera_direction = self.direction_h();
 
             self.position[0] += camera_direction[2] * increment;
             self.position[2] -= camera_direction[0] * increment;
@@ -116,14 +121,14 @@ pub mod camera {
         }
 
         pub fn move_forward_h(&mut self, increment: f32) {
-            let camera_direction = self.direction();
+            let camera_direction = self.direction_h();
 
             self.position[2] += camera_direction[2] * increment;
             self.position[0] += camera_direction[0] * increment;
         }
 
         pub fn move_backward_h(&mut self, increment: f32) {
-            let camera_direction = self.direction();
+            let camera_direction = self.direction_h();
 
             self.position[0] -= camera_direction[0] * increment;
             self.position[2] -= camera_direction[2] * increment;
@@ -131,5 +136,3 @@ pub mod camera {
 
     }
 }
-
-

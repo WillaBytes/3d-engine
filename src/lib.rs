@@ -28,7 +28,7 @@ pub struct State {
     window: Arc<Window>,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
-    vertices: [Vertex; 12],
+    vertices: Vec<Vertex>,
     camera: camera::camera::Camera,
     camera_matrix: [[f32; 3]; 3],
     delta_time: std::time::Instant,
@@ -75,6 +75,8 @@ pub struct Vertex {
     camera_position: [f32; 3],
     camera_matrix: [[f32; 3]; 3],
     scale_factor: f32,
+    normal: [f32; 3],
+    light_source: [f32; 3],
 }
 
 impl Vertex {
@@ -126,6 +128,16 @@ impl Vertex {
                     offset: size_of::<[f32; 18]>() as BufferAddress,
                     shader_location: 6,
                     format: VertexFormat::Float32,
+                },
+                VertexAttribute {
+                    offset: size_of::<[f32; 19]>() as BufferAddress,
+                    shader_location: 7,
+                    format: VertexFormat::Float32x3,
+                },
+                VertexAttribute {
+                    offset: size_of::<[f32; 22]>() as BufferAddress,
+                    shader_location: 8,
+                    format: VertexFormat::Float32x3,
                 },
             ]
         }
@@ -197,40 +209,59 @@ impl State {
                 push_constant_ranges: &[],
             });
         
-        let camera = camera::camera::Camera::new([0.0, 0.0, 0.0], 0.0, 0.0, 0.01, 5.0);
+        let camera = camera::camera::Camera::new([0.0, 0.0, 0.0], 0.0, 0.0, 0.005, 5.0);
 
         let camera_matrix = camera.matrix();
 
         let scale_factor = 1.0;
+        let normal = [0.0, 0.0, 0.0];
+        let light_source = [-1.5, 0.0, 1.0];
 
-        let vertices = [
-            /*
-            Vertex { position: [0.0, 0.0, 5.0], color: [1.0, 1.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [1.0, 0.0, 6.0], color: [1.0, 0.4, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [0.0, 1.0, 6.0], color: [0.4, 0.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
-            
-            Vertex { position: [-0.7, -0.3, 3.5], color: [1.0, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [0.2, -0.5, 3.5], color: [0.0, 1.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [0.1, 1.0, 4.5], color: [0.0, 0.0, 1.0], camera_position: camera.position, camera_matrix, scale_factor },
-            */
-
+        let vertices = vec!(
             // Tetrahedron
-            Vertex { position: [-2.0, -0.35, 2.0], color: [0.9, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [-1.5, 0.0, 2.0], color: [0.9, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [-1.8, 0.6, 2.0], color: [0.9, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [-2.0, -0.35, 2.0], color: [0.9, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor, normal: [0.0, 0.0, 1.0], light_source },
+            Vertex { position: [-1.5, 0.0, 2.0], color: [0.9, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor, normal: [0.0, 0.0, 1.0], light_source },
+            Vertex { position: [-1.8, 0.6, 2.0], color: [0.9, 0.0, 0.0], camera_position: camera.position, camera_matrix, scale_factor, normal: [0.0, 0.0, 1.0], light_source },
 
-            Vertex { position: [-1.5, 0.0, 2.0], color: [0.0, 0.8, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [-2.0, -0.35, 2.0], color: [0.0, 0.8, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [-1.75, 0.4, 3.0], color: [0.0, 0.6, 0.0], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [-1.5, 0.0, 2.0], color: [0.0, 0.8, 0.0], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [-2.0, -0.35, 2.0], color: [0.0, 0.8, 0.0], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [-1.75, 2.4, 8.0], color: [0.0, 0.6, 0.0], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
             
-            Vertex { position: [-1.5, 0.0, 2.0], color: [0.0, 0.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [-1.75, 0.4, 3.0], color: [0.0, 0.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [-1.8, 0.6, 2.0], color: [0.0, 0.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor },
+            Vertex { position: [-1.5, 0.0, 2.0], color: [0.0, 0.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [-1.75, 2.4, 8.0], color: [0.0, 0.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [-1.8, 0.6, 2.0], color: [0.0, 0.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
 
-            Vertex { position: [-2.0, -0.35, 2.0], color: [0.1, 0.1, 0.8], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [-1.8, 0.6, 2.0], color: [0.1, 0.1, 0.8], camera_position: camera.position, camera_matrix, scale_factor },
-            Vertex { position: [-1.75, 0.4, 3.0], color: [0.1, 0.1, 0.8], camera_position: camera.position, camera_matrix, scale_factor },
-        ];
+            Vertex { position: [-2.0, -0.35, 2.0], color: [0.1, 0.1, 0.8], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [-1.8, 0.6, 2.0], color: [0.1, 0.1, 0.8], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [-1.75, 2.4, 8.0], color: [0.1, 0.1, 0.8], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+
+            Vertex { position: [0.0, 0.0, 1.0], color: [0.5, 1.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [200.0, 0.0, 1.0], color: [0.5, 1.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [200.0, 1.0, 1.0], color: [0.5, 1.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+
+            Vertex { position: [0.0, 0.0, 1.0], color: [0.1, 1.1, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [200.0, 1.0, 1.0], color: [0.1, 1.1, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [0.0, 1.0, 1.0], color: [0.1, 1.1, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+
+            Vertex { position: [0.0, 0.0, 1.0], color: [0.5, 1.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [200.0, 1.0, 1.0], color: [0.5, 1.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [200.0, 0.0, 1.0], color: [0.5, 1.5, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+
+            Vertex { position: [0.0, 0.0, -1.0], color: [0.1, 1.1, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [0.0, 1.0, -1.0], color: [0.1, 1.1, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [200.0, 1.0, -1.0], color: [0.1, 1.1, 0.7], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+
+            /*
+            Vertex { position: [0.0, 0.0, 2.0], color: [0.3, 0.1, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [1.0, 1.0, 2.0], color: [0.3, 0.1, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [0.0, 1.0, 3.0], color: [0.3, 0.1, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+
+            Vertex { position: [0.0, 0.0, 3.0], color: [0.0, 0.7, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [1.0, 1.0, 3.0], color: [0.0, 0.7, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            Vertex { position: [0.0, 1.0, 4.0], color: [0.0, 0.7, 0.1], camera_position: camera.position, camera_matrix, scale_factor, normal, light_source },
+            */
+        );
+
 
         let vertex_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
