@@ -213,7 +213,7 @@ impl State {
 
         let camera_matrix = camera.matrix();
 
-        let scale_factor = 1.0;
+        let scale_factor = 1.25;
         let normal = [0.0, 0.0, 0.0];
         let light_source = [-1.5, 0.0, 1.0];
 

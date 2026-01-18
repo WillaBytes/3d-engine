@@ -26,8 +26,6 @@ struct VertexOutput {
 fn vs_main(model: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
-    var render_distance: f32 = 1000.0;
-
 	var camera_matrix = mat3x3<f32>(
 		model.camera_matrix_row_1,
 		model.camera_matrix_row_2,
@@ -36,7 +34,11 @@ fn vs_main(model: VertexInput) -> VertexOutput {
 
     var result = camera_matrix * (model.position - model.camera_position);
 
+    // Now unused, due to utilization of shader for perspective instead of bad, hacky work-arounds.
+    /*
+    var render_distance: f32 = 1000.0;
     var factor: f32 = 1.0;
+    */
 
     // Attempt 1: Doesn't transform vertices behind camera correctly, and results in vertices parallell to the camera wandering off to infinity.
     /*
@@ -61,7 +63,7 @@ fn vs_main(model: VertexInput) -> VertexOutput {
     }
     */
 
-    // Attempt 3: Hopefully the solution; inshallah.
+    // Attempt 3: Hopefully this will work; inshallah.
     /*
     var offset: f32 = 3.0;
     var depth_factor: f32 = 1.0;
@@ -96,6 +98,7 @@ fn vs_main(model: VertexInput) -> VertexOutput {
     */
 
     // Attempt 8: Wonky in the same way as attempt 7, but a little less so.
+    /*
     var limit: f32 = 0.00001;
     if result.z > limit {
         factor = 1.0 / result.z;
@@ -104,12 +107,22 @@ fn vs_main(model: VertexInput) -> VertexOutput {
     } else {
         factor = 1.0 / limit;
     }
+    */
 
+    // Attempt 9: Futile.
+    /*
+    if result.z > 0.0001 { factor = 1.0 / (model.depth_factor * result.z); }
+    else { factor = 100000000000000000000000000000000.0; }
+    */
+
+    // For use with old methods for perspective:
+    /*
     result.x *= factor;
     result.y *= factor;
     result.z /= render_distance;
+    */
 
-	out.clip_position = vec4<f32>(result, 1.0);
+	out.clip_position = vec4<f32>(result, result.z * model.depth_factor);
 
     // With lighting
     /*
